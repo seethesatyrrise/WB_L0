@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Order</title>
+	</head>
+	<body>
+		<div>order_uid: {{ .OrderUid }}</div>
+		<div>track_number: {{ .TrackNumber }}</div>
+		<div>entry: {{ .Entry }}</div>
+		<div>delivery: </div>
+		<div style="margin-left: 25px;">
+		<div>name: {{ .Delivery.Name }}</div>
+		<div>phone: {{ .Delivery.Phone }}</div>
+		<div>zip: {{ .Delivery.Zip }}</div>
+		<div>city: {{ .Delivery.City }}</div>
+		<div>address: {{ .Delivery.Address }}</div>
+		<div>region: {{ .Delivery.Region }}</div>
+		<div>email: {{ .Delivery.Email }}</div>
+		</div>
+		<div>payment: </div>
+		<div style="margin-left: 25px;">
+		<div>transaction: {{ .Payment.Transaction }}</div>
+		<div>request_id: {{ .Payment.RequestId }}</div>
+		<div>currency: {{ .Payment.Currency }}</div>
+		<div>provider: {{ .Payment.Provider }}</div>
+		<div>amount: {{ .Payment.Amount }}</div>
+		<div>payment_dt: {{ .Payment.PaymentDt }}</div>
+		<div>bank: {{ .Payment.Bank }}</div>
+		<div>delivery_cost: {{ .Payment.DeliveryCost }}</div>
+		<div>goods_total: {{ .Payment.GoodsTotal }}</div>
+		<div>custom_fee: {{ .Payment.CustomFee }}</div>
+		</div>
+		<div>items: </div>
+		{{range  $index, $element := .Items}}
+		<div style="margin-left: 25px;">item #{{ $index }}:</div>
+		<div style="margin-left: 35px;">
+		<div>chrt_id: {{ $element.ChrtId }}</div>
+		<div>track_number: {{ .TrackNumber }}</div>
+		<div>price: {{ .Price }}</div>
+		<div>rid: {{ .Rid }}</div>
+		<div>name: {{ .Name }}</div>
+		<div>sale: {{ .Sale }}</div>
+		<div>size: {{ .Size }}</div>
+		<div>total_price: {{ .TotalPrice }}</div>
+		<div>nm_id: {{ .NmId }}</div>
+		<div>brand: {{ .Brand }}</div>
+		<div>status: {{ .Status }}</div>
+		</div>
+		{{else}}<div><strong>no items</strong></div>{{end}}
+		<div>locale: {{ .Locale }}</div>
+		<div>internal_signature: {{ .InternalSignature }}</div>
+		<div>customer_id: {{ .CustomerId }}</div>
+		<div>delivery_service: {{ .DeliveryService }}</div>
+		<div>shardkey: {{ .Shardkey }}</div>
+		<div>sm_id: {{ .SmId }}</div>
+		<div>date_created: {{ .DateCreated }}</div>
+		<div>oof_shard: {{ .OofShard }}</div>
+	</body>
+</html>

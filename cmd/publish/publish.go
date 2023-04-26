@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	url := os.Getenv("NATS_URL")
 	if url == "" {
 		url = nats.DefaultURL
@@ -21,23 +20,35 @@ func main() {
 
 	js, _ := nc.JetStream()
 
-	streamName := "MSG"
+	//js.Publish("msg", getOrder2())
+	//addStream(js, "MSG")
+	//deleteStream(js, "MSG")
+	publish(js, getOrder1())
 
-	js.AddStream(&nats.StreamConfig{
-		Name: streamName,
-		//Retention: nats.WorkQueuePolicy,
-		Subjects: []string{"msg"},
-	})
+}
 
-	message, err := json.Marshal(getOrder1())
+func publish(js nats.JetStreamContext, order *models.Order) {
+	message, err := json.Marshal(order)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	js.Publish("msg", message)
+}
 
-	//input := bufio.NewScanner(os.Stdin)
-	//input.Scan()
+func addStream(js nats.JetStreamContext, streamName string) {
+	js.AddStream(&nats.StreamConfig{
+		Name:     streamName,
+		Subjects: []string{"msg"},
+	})
+}
+
+func deleteStream(js nats.JetStreamContext, streamName string) {
+	js.DeleteStream(streamName)
+}
+
+func getOrder2() []byte {
+	return []byte("{\n  \"order_uid\": \"b563feb7b2b84b6test\",\n  \"track_number\": \"WBILMTESTTRACK\",\n  \"entry\": \"WBIL\",\n  \"delivery\": {\n    \"name\": \"Test Testov\",\n    \"phone\": \"+9720000000\",\n    \"zip\": \"2639809\",\n    \"city\": \"Kiryat Mozkin\",\n    \"address\": \"Ploshad Mira 15\",\n    \"region\": \"Kraiot\",\n    \"email\": \"test@gmail.com\"\n  },\n  \"payment\": {\n    \"transaction\": \"b563feb7b2b84b6test\",\n    \"request_id\": \"\",\n    \"currency\": \"USD\",\n    \"provider\": \"wbpay\",\n    \"amount\": 1817,\n    \"payment_dt\": 1637907727,\n    \"bank\": \"alpha\",\n    \"delivery_cost\": 1500,\n    \"goods_total\": 317,\n    \"custom_fee\": 0\n  },\n  \"items\": [\n    {\n      \"chrt_id\": 9934930,\n      \"track_number\": \"WBILMTESTTRACK\",\n      \"price\": 453,\n      \"rid\": \"ab4219087a764ae0btest\",\n      \"name\": \"Mascaras\",\n      \"sale\": 30,\n      \"size\": \"0\",\n      \"total_price\": 317,\n      \"nm_id\": 2389212,\n      \"brand\": \"Vivienne Sabo\",\n      \"status\": 202\n    }\n  ],\n  \"locale\": \"en\",\n  \"internal_signature\": \"\",\n  \"customer_id\": \"test\",\n  \"delivery_service\": \"meest\",\n  \"shardkey\": \"9\",\n  \"sm_id\": 99,\n  \"date_created\": \"2021-11-26T06:22:19Z\",\n  \"oof_shard\": \"1\"\n}")
 }
 
 func getOrder1() *models.Order {
@@ -77,6 +88,18 @@ func getOrder1() *models.Order {
 			TotalPrice:  317,
 			NmId:        2389212,
 			Brand:       "Vivienne Sabo",
+			Status:      202,
+		}, {
+			ChrtId:      9934931,
+			TrackNumber: "WBILMTESTTRACK",
+			Price:       453,
+			Rid:         "ab4219087a764ae0btest",
+			Name:        "Mascaras",
+			Sale:        30,
+			Size:        "0",
+			TotalPrice:  317,
+			NmId:        2389212,
+			Brand:       "VIVIENNE SABO11111",
 			Status:      202,
 		}},
 		Locale:            "en",

@@ -9,6 +9,7 @@ import (
 	"http-nats-psql/internal/rest"
 	"http-nats-psql/internal/server"
 	"http-nats-psql/internal/storage"
+	"http-nats-psql/internal/utils"
 )
 
 type App struct {
@@ -18,6 +19,7 @@ type App struct {
 	router  *gin.Engine
 	server  *server.Server
 	cfg     *AppConfig
+	v       *utils.Validator
 }
 
 func New(ctx context.Context) (app *App, err error) {
@@ -44,6 +46,11 @@ func New(ctx context.Context) (app *App, err error) {
 
 	rest := rest.NewRest(app.storage, app.db)
 
+	app.v, err = utils.NewValidator()
+	if err != nil {
+		return nil, err
+	}
+
 	router := gin.New()
 	api := router.Group("/api")
 
@@ -64,7 +71,7 @@ func (app *App) Run(ctx context.Context) (err error) {
 		return err
 	}
 
-	go app.js.GetMessages(ctx, app.storage, app.db)
+	go app.js.GetMessages(ctx, app.storage, app.db, app.v)
 
 	return nil
 }

@@ -2,11 +2,10 @@ package rest
 
 import (
 	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"html/template"
 	"http-nats-psql/internal/models"
 	"http-nats-psql/internal/utils"
-	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -18,21 +17,16 @@ func PublishError(c *gin.Context, err error, code int) {
 		_ = c.Error(err)
 	}
 
-	c.JSON(code, gin.H{
-		"error": err.Error(),
-		"code":  code,
-	})
+	c.Data(code, "text/html", []byte(err.Error()))
 }
 
-func PublishData(c *gin.Context, data *models.Order) {
-	dataJSON, err := json.Marshal(data)
+func PublishOrder(c *gin.Context, data []byte, orderTemplate *template.Template) {
+	model := &models.Order{}
+	err := json.Unmarshal(data, model)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		return
 	}
-	c.Data(http.StatusOK, "application/json", dataJSON)
-}
 
-func PublishDataBytes(c *gin.Context, data []byte) {
-	c.Data(http.StatusOK, "application/json", data)
+	orderTemplate.Execute(c.Writer, *model)
 }

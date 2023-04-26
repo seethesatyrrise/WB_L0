@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgx"
 	"http-nats-psql/internal/models"
-	"http-nats-psql/internal/utils"
 	"time"
 )
 
@@ -40,7 +39,7 @@ func (db *DB) InsertOrder(ctx context.Context, data []byte) (string, error) {
 		return "", err
 	}
 
-	return "", err
+	return id, err
 }
 
 func (db *DB) GetOrderByID(ctx context.Context, id string) ([]byte, error) {
@@ -56,7 +55,6 @@ func (db *DB) GetOrderByID(ctx context.Context, id string) ([]byte, error) {
 		return nil, err
 	}
 	if data == nil {
-		utils.Logger.Info("rows with id: " + id + " not found")
 		return nil, fmt.Errorf("rows with id: %s not found", id)
 	}
 

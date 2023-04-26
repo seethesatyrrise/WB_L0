@@ -33,9 +33,7 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 		return nil, err
 	}
 
-	streamName := "MSG"
-	consumerName := "server1"
-	js.ConsumerInfo(streamName, consumerName)
+	js.ConsumerInfo(jscfg.StreamName, jscfg.ConsumerName)
 	//js.AddConsumer(streamName, &nats.ConsumerConfig{
 	//	Durable:       consumerName,
 	//	DeliverPolicy: nats.DeliverAllPolicy,
@@ -43,7 +41,7 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 	//})
 
 	ch := make(chan *nats.Msg)
-	sub, err := nc.ChanSubscribe("msg", ch)
+	sub, err := nc.ChanSubscribe(jscfg.SubjectName, ch)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +56,7 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 	return newStream, nil
 }
 
-func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *database.DB) {
+func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *database.DB, v *utils.Validator) {
 	defer close(s.subCh)
 	count := 1
 	for {
@@ -68,6 +66,16 @@ func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *
 		case msg := <-s.subCh:
 			fmt.Printf("got message #%d\n", count)
 			count++
+
+			valid, err := v.Validate(msg.Data)
+			if err != nil {
+				utils.Logger.Error(err.Error())
+				continue
+			}
+			if !valid {
+				utils.Logger.Error("invalid message")
+				continue
+			}
 
 			id, err := db.InsertOrder(ctx, msg.Data)
 			if err != nil {
@@ -79,7 +87,7 @@ func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *
 				utils.Logger.Error(err.Error())
 				continue
 			}
-			msg.Ack()
+
 			if err := msg.AckSync(); err != nil {
 				continue
 			}
