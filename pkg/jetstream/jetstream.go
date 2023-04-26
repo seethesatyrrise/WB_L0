@@ -10,7 +10,18 @@ import (
 	"os"
 )
 
-func RunJetStream(db *pg.DB) {
+type Stream struct {
+	connection   *nats.Conn
+	stream       *nats.JetStreamContext
+	subscription *nats.Subscription
+}
+
+func (stream *Stream) Unsubscribe() {
+	stream.subscription.Unsubscribe()
+	stream.connection.Drain()
+}
+
+func NewJetStream(db *pg.DB) *Stream {
 	url := os.Getenv("NATS_URL")
 	if url == "" {
 		url = nats.DefaultURL
@@ -20,41 +31,37 @@ func RunJetStream(db *pg.DB) {
 	if err != nil {
 		panic(err)
 	}
-	defer nc.Drain()
 
 	js, err := nc.JetStream()
 	if err != nil {
 		panic(err)
 	}
 
-	streamName := "MSG"
-
-	js.AddStream(&nats.StreamConfig{
-		Name:     streamName,
-		Subjects: []string{"msg"},
-	})
-
-	sub, err := js.SubscribeSync("msg", nats.AckExplicit())
+	sub, err := js.SubscribeSync("msg")
 	if err != nil {
 		panic(err)
 	}
 
-	ch := make(chan struct{})
-	defer close(ch)
-	go getMessages(sub, db, ch)
-	<-ch
+	newStream := &Stream{stream: &js,
+		subscription: sub,
+		connection:   nc,
+	}
+
+	go getMessages(newStream, db)
+
+	return newStream
 }
 
-func getMessages(sub *nats.Subscription, db *pg.DB, ch chan struct{}) {
-	defer func() { ch <- struct{}{} }()
-	for {
-		msg, err := sub.NextMsgWithContext(context.Background())
+func getMessages(stream *Stream, db *pg.DB) {
+	for count := 1; ; count++ {
+		msg, err := stream.subscription.NextMsgWithContext(context.Background())
 		if err != nil {
-			panic(err)
+			fmt.Println("no subscription")
+			return
 		}
-		fmt.Println("got message")
+		fmt.Println("got message #", count)
 
-		msg.Ack()
+		msg.AckSync()
 
 		msgOut := &orderModel.Order{}
 		err = json.Unmarshal(msg.Data, msgOut)
@@ -67,8 +74,8 @@ func getMessages(sub *nats.Subscription, db *pg.DB, ch chan struct{}) {
 }
 
 func insertOrder(order *orderModel.Order, db *pg.DB) error {
-	var res interface{}
-	_, err := db.Query(&res,
+	//var res interface{}
+	_, err := db.Exec(
 		`select insert_data(?);`,
 		order)
 

@@ -17,17 +17,16 @@ func NewRepo(db *pg.DB) *repo {
 }
 
 func (r *repo) GetOrderByID(ctx context.Context, orderID string) (*orderModel.Order, error) {
-	var res []byte
+	//var res []byte
 	var mod orderModel.OrderSql
-	queryRes, err := r.db.QueryOne(&mod,
+	_, err := r.db.Query(&mod,
 		`select * from select_data(?);`,
 		orderID)
-	fmt.Println(mod)
 	if err != nil {
 		panic(err)
 	}
 
-	if queryRes.RowsReturned() == 0 {
+	if mod.Data == "" {
 		return nil, fmt.Errorf("order with id \"%s\" not found in bd", orderID)
 	}
 
@@ -36,7 +35,7 @@ func (r *repo) GetOrderByID(ctx context.Context, orderID string) (*orderModel.Or
 	}
 
 	order := &orderModel.Order{}
-	err = json.Unmarshal(res, order)
+	err = json.Unmarshal([]byte(mod.Data), order)
 	if err != nil {
 		panic(err)
 	}

@@ -3,7 +3,7 @@ package orderModel
 import "time"
 
 type OrderSql struct {
-	Data []byte `sql:"select_data"`
+	Data string `sql:"select_data"`
 }
 
 type Items struct {

@@ -14,6 +14,7 @@ import (
 
 type server struct {
 	httpServer *http.Server
+	stream     *jetstream.Stream
 }
 
 func NewServer(cfg *database.Config) (*server, error) {
@@ -22,7 +23,7 @@ func NewServer(cfg *database.Config) (*server, error) {
 		return nil, err
 	}
 
-	go jetstream.RunJetStream(db)
+	stream := jetstream.NewJetStream(db)
 
 	ordersRepo := repo.NewRepo(db)
 	ordersRest := rest.NewRest(ordersRepo)
@@ -37,6 +38,7 @@ func NewServer(cfg *database.Config) (*server, error) {
 			Addr:    ":" + cfg.ServerPort,
 			Handler: router,
 		},
+		stream: stream,
 	}, nil
 }
 
@@ -52,6 +54,10 @@ func (s *server) Start() error {
 }
 
 func (s *server) Shutdown(ctx context.Context) error {
+	if s.stream != nil {
+		s.stream.Unsubscribe()
+	}
+
 	if s.httpServer != nil {
 		return s.httpServer.Shutdown(ctx)
 	}
