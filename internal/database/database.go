@@ -1,67 +1,85 @@
 package database
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"github.com/go-pg/pg"
-	"http-nats-psql/internal"
+	"github.com/jackc/pgx"
 	"http-nats-psql/internal/models"
+	"time"
 )
 
 type DB struct {
-	Handler *pg.DB
+	Handler *pgx.Conn
 }
 
-func NewDatabaseConnection(c *internal.DBConfig) (*DB, error) {
-	db := pg.Connect(&pg.Options{
-		Addr:     c.PGAddress,
+func NewDatabaseConnection(c *DBConfig) (*DB, error) {
+	db, err := pgx.Connect(pgx.ConnConfig{
+		Host:     c.PGAddress,
 		User:     c.PGUser,
 		Password: c.PGPassword,
 		Database: c.PGDatabase,
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &DB{Handler: db}, nil
 }
 
-func (db *DB) InsertOrder(data *models.Order) error {
-	_, err := db.Handler.Exec(
-		`select * from insert_data(?);`,
-		data)
+func (db *DB) InsertOrder(ctx context.Context, data []byte) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+	var id string
+	row := db.Handler.QueryRowEx(ctx,
+		`select * from insert_data($1);`,
+		nil, data)
 
+	err := row.Scan(&id)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return "", err
 }
 
-func (db *DB) GetOrderByID(id string) (*models.Order, error) {
-	var mod models.SelectData
-	_, err := db.Handler.QueryOne(&mod,
-		`select * from select_data(?);`,
-		id)
+func (db *DB) GetOrderByID(ctx context.Context, id string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+	var data []byte
+	row := db.Handler.QueryRowEx(ctx,
+		`select * from select_data($1);`,
+		nil, id)
+
+	err := row.Scan(&data)
 	if err != nil {
-		panic(err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("rows with id: %s not found", id)
+		}
+		return nil, err
 	}
 
-	if mod.Data.OrderUid == "" {
-		return nil, fmt.Errorf("order with id \"%s\" not found in bd", id)
-	}
-
-	return &mod.Data, nil
+	return data, nil
 }
 
-func (db *DB) GetAllData() []models.Restoration {
+func (db *DB) GetAllData(ctx context.Context) ([]models.Restoration, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
 	var mod []models.Restoration
-	queryRes, err := db.Handler.Query(&mod,
-		`select * from select_all();`,
+	rows, err := db.Handler.QueryEx(ctx,
+		`select * from select_all();`, nil,
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	if queryRes.RowsReturned() == 0 {
-		fmt.Println("nothing to restore")
-		return nil
+	for rows.Next() {
+		r := new(models.Restoration)
+		if err := rows.Scan(&r.ID, &r.Data); err != nil {
+			return nil, err
+		}
+		mod = append(mod, *r)
 	}
 
-	return mod
+	return mod, nil
 }

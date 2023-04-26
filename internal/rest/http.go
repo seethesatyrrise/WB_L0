@@ -32,3 +32,7 @@ func PublishData(c *gin.Context, data *models.Order) {
 	}
 	c.Data(http.StatusOK, "application/json", dataJSON)
 }
+
+func PublishDataBytes(c *gin.Context, data []byte) {
+	c.Data(http.StatusOK, "application/json", data)
+}

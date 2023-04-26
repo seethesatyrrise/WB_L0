@@ -8,24 +8,24 @@ import (
 	"net/http"
 )
 
-type rest struct {
+type Rest struct {
 	storage *storage.Storage
 	db      *database.DB
 }
 
-func NewRest(storage *storage.Storage, db *database.DB) *rest {
-	return &rest{storage: storage, db: db}
+func NewRest(storage *storage.Storage, db *database.DB) *Rest {
+	return &Rest{storage: storage, db: db}
 }
 
-func (r *rest) Register(api *gin.RouterGroup) {
+func (r *Rest) Register(api *gin.RouterGroup) {
 	route := api.Group("/orders")
 	{
 		route.GET(":orderID", r.getOrderByID)
 	}
 }
 
-func (r *rest) getOrderByID(c *gin.Context) {
-	//ctx := c.Request.Context()
+func (r *Rest) getOrderByID(c *gin.Context) {
+	ctx := c.Request.Context()
 	orderID := c.Param("orderID")
 	if orderID == "" {
 		PublishError(c, errors.New("empty orderID"), http.StatusBadRequest)
@@ -34,15 +34,15 @@ func (r *rest) getOrderByID(c *gin.Context) {
 
 	order, err := r.storage.GetOrderByID(orderID)
 	if err == nil {
-		PublishData(c, order)
+		PublishDataBytes(c, order)
 		return
 	}
 
-	order, err = r.db.GetOrderByID(orderID)
+	data, err := r.db.GetOrderByID(ctx, orderID)
 	if err != nil {
 		PublishError(c, err, http.StatusInternalServerError)
 		return
 	}
 
-	PublishData(c, order)
+	PublishDataBytes(c, data)
 }
