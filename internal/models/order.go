@@ -1,10 +1,6 @@
-package orderModel
+package models
 
 import "time"
-
-type OrderSql struct {
-	Data string `sql:"select_data"`
-}
 
 type Items struct {
 	ChrtId      int    `json:"chrt_id"`

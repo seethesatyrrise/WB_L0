@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nats-io/nats.go"
-	"http-nats-psql/pkg/orderModel"
+	"http-nats-psql/internal/models"
 	"os"
 	"time"
 )
@@ -24,7 +24,8 @@ func main() {
 	streamName := "MSG"
 
 	js.AddStream(&nats.StreamConfig{
-		Name:     streamName,
+		Name: streamName,
+		//Retention: nats.WorkQueuePolicy,
 		Subjects: []string{"msg"},
 	})
 
@@ -35,16 +36,16 @@ func main() {
 
 	js.Publish("msg", message)
 
-	var wait int
-	fmt.Scanln(wait)
+	//input := bufio.NewScanner(os.Stdin)
+	//input.Scan()
 }
 
-func getOrder1() *orderModel.Order {
-	return &orderModel.Order{
-		OrderUid:    "b563feb7b2b84b6test",
+func getOrder1() *models.Order {
+	return &models.Order{
+		OrderUid:    "b563feb7b2b84b6te",
 		TrackNumber: "WBILMTESTTRACK",
 		Entry:       "WBIL",
-		Delivery: orderModel.Delivery{
+		Delivery: models.Delivery{
 			Name:    "Test Testov",
 			Phone:   "+9720000000",
 			Zip:     "2639809",
@@ -53,7 +54,7 @@ func getOrder1() *orderModel.Order {
 			Region:  "Kraiot",
 			Email:   "test@gmail.com",
 		},
-		Payment: orderModel.Payment{
+		Payment: models.Payment{
 			Transaction:  "b563feb7b2b84b6test",
 			RequestId:    "",
 			Currency:     "USD",
@@ -65,7 +66,7 @@ func getOrder1() *orderModel.Order {
 			GoodsTotal:   317,
 			CustomFee:    0,
 		},
-		Items: []orderModel.Items{{
+		Items: []models.Items{{
 			ChrtId:      9934930,
 			TrackNumber: "WBILMTESTTRACK",
 			Price:       453,

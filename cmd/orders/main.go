@@ -3,20 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"http-nats-psql/pkg/database"
-	"http-nats-psql/pkg/server"
+	"http-nats-psql/internal"
+	"http-nats-psql/internal/server"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 func main() {
-	cfg, err := database.GetConfig()
+	dbcfg, err := internal.GetDBConfig()
 	if err != nil {
 		panic(err)
 	}
+	jscfg := internal.GetJSConfig()
 
-	srv, err := server.NewServer(cfg)
+	srv, err := server.NewServer(dbcfg, jscfg)
 	if err != nil {
 		fmt.Println("can't create server")
 	}

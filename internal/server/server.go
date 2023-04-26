@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
-	"http-nats-psql/pkg/database"
-	"http-nats-psql/pkg/jetstream"
-	"http-nats-psql/pkg/rest"
-	"http-nats-psql/pkg/storage"
+	"http-nats-psql/internal"
+	"http-nats-psql/internal/database"
+	"http-nats-psql/internal/jetstream"
+	"http-nats-psql/internal/rest"
+	"http-nats-psql/internal/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,18 +18,20 @@ type server struct {
 	stream     *jetstream.Stream
 }
 
-func NewServer(cfg *database.Config) (*server, error) {
-	db, err := database.NewDatabaseConnection(cfg)
+func NewServer(dbcfg *internal.DBConfig, jscfg *internal.JSConfig) (*server, error) {
+	db, err := database.NewDatabaseConnection(dbcfg)
 	if err != nil {
 		return nil, err
 	}
 
-	storage := storage.NewStorage(db)
+	storage := storage.NewStorage()
 	storage.RestoreData(db)
 
-	ordersStream := jetstream.NewJetStream(storage)
+	ordersStream := jetstream.NewJetStream(jscfg)
 
-	ordersRest := rest.NewRest(storage)
+	go jetstream.GetMessages(ordersStream, storage, db)
+
+	ordersRest := rest.NewRest(storage, db)
 
 	router := gin.New()
 	api := router.Group("/api")
@@ -37,7 +40,7 @@ func NewServer(cfg *database.Config) (*server, error) {
 
 	return &server{
 		httpServer: &http.Server{
-			Addr:    ":" + cfg.ServerPort,
+			Addr:    ":" + dbcfg.ServerPort,
 			Handler: router,
 		},
 		stream: ordersStream,
