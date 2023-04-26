@@ -7,6 +7,7 @@ import (
 	"http-nats-psql/internal/database"
 	"http-nats-psql/internal/storage"
 	"http-nats-psql/internal/utils"
+	"time"
 )
 
 type Stream struct {
@@ -16,14 +17,12 @@ type Stream struct {
 	subCh  chan *nats.Msg
 }
 
-func (s *Stream) Unsubscribe() {
-	s.subscr.Unsubscribe()
-	//s.stream.DeleteConsumer("MSG", "server")
+func (s *Stream) Drain() {
 	s.conn.Drain()
 }
 
 func NewJetStream(jscfg *JSConfig) (*Stream, error) {
-	nc, err := nats.Connect(jscfg.URL)
+	nc, err := nats.Connect(jscfg.URL, nats.Name("http-nats-pgsql"))
 	if err != nil {
 		return nil, err
 	}
@@ -33,15 +32,20 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 		return nil, err
 	}
 
-	js.ConsumerInfo(jscfg.StreamName, jscfg.ConsumerName)
-	//js.AddConsumer(streamName, &nats.ConsumerConfig{
-	//	Durable:       consumerName,
-	//	DeliverPolicy: nats.DeliverAllPolicy,
-	//	//AckPolicy: nats.AckExplicitPolicy,
-	//})
+	_, err = js.ConsumerInfo(jscfg.StreamName, jscfg.ConsumerName)
+	if err != nil {
+		js.AddConsumer(jscfg.StreamName, &nats.ConsumerConfig{
+			Durable:        jscfg.ConsumerName,
+			DeliverSubject: jscfg.SubjectName,
+			DeliverPolicy:  nats.DeliverAllPolicy,
+			AckPolicy:      nats.AckExplicitPolicy,
+			AckWait:        time.Second * 10,
+		})
+	}
 
-	ch := make(chan *nats.Msg)
-	sub, err := nc.ChanSubscribe(jscfg.SubjectName, ch)
+	ch := make(chan *nats.Msg, 5)
+	sub, err := js.ChanSubscribe(jscfg.SubjectName, ch, nats.Durable(jscfg.ConsumerName), nats.AckExplicit())
+
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +64,7 @@ func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *
 	defer close(s.subCh)
 	count := 1
 	for {
+
 		select {
 		case <-ctx.Done():
 			return
@@ -69,6 +74,10 @@ func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *
 
 			valid, err := v.Validate(msg.Data)
 			if err != nil {
+				if err := msg.Ack(); err != nil {
+					utils.Logger.Error(err.Error())
+					continue
+				}
 				utils.Logger.Error(err.Error())
 				continue
 			}
@@ -88,8 +97,8 @@ func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *
 				continue
 			}
 
-			if err := msg.AckSync(); err != nil {
-				continue
+			if err := msg.Ack(); err != nil {
+				utils.Logger.Error(err.Error())
 			}
 		}
 	}

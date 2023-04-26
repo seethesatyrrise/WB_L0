@@ -90,7 +90,7 @@ func (app *App) Shutdown(ctx context.Context) error {
 
 	g.Go(func() error {
 		if app.js != nil {
-			app.js.Unsubscribe()
+			app.js.Drain()
 		}
 		return nil
 	})
