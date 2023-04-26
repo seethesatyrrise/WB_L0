@@ -28,12 +28,3 @@ func PublishData(c *gin.Context, data interface{}) {
 		"data": data,
 	})
 }
-
-//
-//func GetResponse(c *gin.Context) (interface{}, bool) {
-//	return c.Get(responseKey)
-//}
-//
-//func IsHTTPStatusSuccess(code int) bool {
-//	return code >= http.StatusOK && code < http.StatusMultipleChoices
-//}

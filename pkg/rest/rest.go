@@ -2,18 +2,18 @@ package rest
 
 import (
 	"errors"
-	"http-nats-psql/pkg"
+	"http-nats-psql/pkg/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type rest struct {
-	service pkg.Repo
+	service *storage.Storage
 }
 
-func NewRest(service pkg.Repo) *rest {
-	return &rest{service}
+func NewRest(storage *storage.Storage) *rest {
+	return &rest{service: storage}
 }
 
 func (r *rest) Register(api *gin.RouterGroup) {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"http-nats-psql/pkg/database"
 	"http-nats-psql/pkg/jetstream"
-	"http-nats-psql/pkg/repo"
 	"http-nats-psql/pkg/rest"
+	"http-nats-psql/pkg/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,10 +23,12 @@ func NewServer(cfg *database.Config) (*server, error) {
 		return nil, err
 	}
 
-	stream := jetstream.NewJetStream(db)
+	storage := storage.NewStorage(db)
+	storage.RestoreData(db)
 
-	ordersRepo := repo.NewRepo(db)
-	ordersRest := rest.NewRest(ordersRepo)
+	ordersStream := jetstream.NewJetStream(storage)
+
+	ordersRest := rest.NewRest(storage)
 
 	router := gin.New()
 	api := router.Group("/api")
@@ -38,7 +40,7 @@ func NewServer(cfg *database.Config) (*server, error) {
 			Addr:    ":" + cfg.ServerPort,
 			Handler: router,
 		},
-		stream: stream,
+		stream: ordersStream,
 	}, nil
 }
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-pg/pg"
 	"github.com/nats-io/nats.go"
 	"http-nats-psql/pkg/orderModel"
+	"http-nats-psql/pkg/storage"
 	"os"
 )
 
@@ -21,7 +21,7 @@ func (stream *Stream) Unsubscribe() {
 	stream.connection.Drain()
 }
 
-func NewJetStream(db *pg.DB) *Stream {
+func NewJetStream(storage *storage.Storage) *Stream {
 	url := os.Getenv("NATS_URL")
 	if url == "" {
 		url = nats.DefaultURL
@@ -47,12 +47,12 @@ func NewJetStream(db *pg.DB) *Stream {
 		connection:   nc,
 	}
 
-	go getMessages(newStream, db)
+	go getMessages(newStream, storage)
 
 	return newStream
 }
 
-func getMessages(stream *Stream, db *pg.DB) {
+func getMessages(stream *Stream, storage *storage.Storage) {
 	for count := 1; ; count++ {
 		msg, err := stream.subscription.NextMsgWithContext(context.Background())
 		if err != nil {
@@ -69,19 +69,6 @@ func getMessages(stream *Stream, db *pg.DB) {
 			panic(err)
 		}
 
-		insertOrder(msgOut, db)
+		storage.InsertOrder(msgOut)
 	}
-}
-
-func insertOrder(order *orderModel.Order, db *pg.DB) error {
-	//var res interface{}
-	_, err := db.Exec(
-		`select insert_data(?);`,
-		order)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
