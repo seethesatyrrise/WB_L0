@@ -2,10 +2,10 @@ package database
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/jackc/pgx"
 	"http-nats-psql/internal/models"
+	"http-nats-psql/internal/utils"
 	"time"
 )
 
@@ -53,10 +53,11 @@ func (db *DB) GetOrderByID(ctx context.Context, id string) ([]byte, error) {
 
 	err := row.Scan(&data)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("rows with id: %s not found", id)
-		}
 		return nil, err
+	}
+	if data == nil {
+		utils.Logger.Info("rows with id: " + id + " not found")
+		return nil, fmt.Errorf("rows with id: %s not found", id)
 	}
 
 	return data, nil

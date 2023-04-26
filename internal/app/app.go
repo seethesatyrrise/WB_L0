@@ -60,11 +60,11 @@ func New(ctx context.Context) (app *App, err error) {
 }
 
 func (app *App) Run(ctx context.Context) (err error) {
-	go app.js.GetMessages(ctx, app.storage, app.db)
-
 	if err := app.server.Start(); err != nil {
 		return err
 	}
+
+	go app.js.GetMessages(ctx, app.storage, app.db)
 
 	return nil
 }

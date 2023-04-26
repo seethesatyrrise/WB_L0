@@ -2,8 +2,8 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
 	"http-nats-psql/internal/models"
+	"http-nats-psql/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +27,7 @@ func PublishError(c *gin.Context, err error, code int) {
 func PublishData(c *gin.Context, data *models.Order) {
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Error(err.Error())
 		return
 	}
 	c.Data(http.StatusOK, "application/json", dataJSON)

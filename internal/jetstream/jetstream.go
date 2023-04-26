@@ -6,17 +6,19 @@ import (
 	"github.com/nats-io/nats.go"
 	"http-nats-psql/internal/database"
 	"http-nats-psql/internal/storage"
+	"http-nats-psql/internal/utils"
 )
 
 type Stream struct {
 	conn   *nats.Conn
-	stream *nats.JetStreamContext
+	stream nats.JetStreamContext
 	subscr *nats.Subscription
 	subCh  chan *nats.Msg
 }
 
 func (s *Stream) Unsubscribe() {
 	s.subscr.Unsubscribe()
+	//s.stream.DeleteConsumer("MSG", "server")
 	s.conn.Drain()
 }
 
@@ -31,6 +33,15 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 		return nil, err
 	}
 
+	streamName := "MSG"
+	consumerName := "server1"
+	js.ConsumerInfo(streamName, consumerName)
+	//js.AddConsumer(streamName, &nats.ConsumerConfig{
+	//	Durable:       consumerName,
+	//	DeliverPolicy: nats.DeliverAllPolicy,
+	//	//AckPolicy: nats.AckExplicitPolicy,
+	//})
+
 	ch := make(chan *nats.Msg)
 	sub, err := nc.ChanSubscribe("msg", ch)
 	if err != nil {
@@ -38,7 +49,7 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 	}
 
 	newStream := &Stream{
-		stream: &js,
+		stream: js,
 		subscr: sub,
 		subCh:  ch,
 		conn:   nc,
@@ -48,6 +59,7 @@ func NewJetStream(jscfg *JSConfig) (*Stream, error) {
 }
 
 func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *database.DB) {
+	defer close(s.subCh)
 	count := 1
 	for {
 		select {
@@ -59,15 +71,15 @@ func (s *Stream) GetMessages(ctx context.Context, storage *storage.Storage, db *
 
 			id, err := db.InsertOrder(ctx, msg.Data)
 			if err != nil {
-				fmt.Println(err)
+				utils.Logger.Error(err.Error())
 				continue
 			}
 			err = storage.InsertOrder(id, msg.Data)
 			if err != nil {
-				fmt.Println(err)
+				utils.Logger.Error(err.Error())
 				continue
 			}
-
+			msg.Ack()
 			if err := msg.AckSync(); err != nil {
 				continue
 			}
