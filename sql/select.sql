@@ -11,6 +11,3 @@ END
 $$;
 
 alter function public.select_data(text) owner to postgres;
-
-
-select select_data('b563feb7b2b84b6te');

@@ -8,10 +8,6 @@ import (
 	"http-nats-psql/internal/utils"
 )
 
-const (
-	responseKey = "response"
-)
-
 func PublishError(c *gin.Context, err error, code int) {
 	if err != nil {
 		_ = c.Error(err)
